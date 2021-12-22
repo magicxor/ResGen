@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="BeginSTRClass" xml:space="preserve">
+    <value>Creating strongly typed resource class "{0}"...  </value>
+  </data>
+  <data name="UnbalancedEndifs" xml:space="preserve">
+    <value>Found an #endif without a matching #ifdef.</value>
+  </data>
+  <data name="NoEqualsWithNewLine" xml:space="preserve">
+    <value>Found a resource that had a new line in it, but couldn't find the equal sign within!  Length: {0}  name: '{1}'.</value>
+  </data>
+  <data name="MalformedCompileString" xml:space="preserve">
+    <value>You must specify an input &amp; outfile file name like this:
+inFile.txt,outFile.resources.
+You passed in "{0}".</value>
+  </data>
+  <data name="NeutralityOfCultureNotPreserved" xml:space="preserve">
+    <value>This assembly contains neutral resources corresponding to the culture "{0}". These resources will not be considered neutral in the output format as we are unable to preserve this information. The resources will continue to correspond to "{0}" in the output format.</value>
+  </data>
+  <data name="WarningCount" xml:space="preserve">
+    <value>{0} warnings(s).</value>
+  </data>
+  <data name="CreatingCultureInfoFailed" xml:space="preserve">
+    <value>Creating the CultureInfo failed for assembly "{2}".  Note the set of cultures supported is Operating System-dependent, and the Operating System has removed some cultures from time to time (ie, some Serbian cultures are split up in Windows 7).  The culture may be a user-defined custom culture that we can't currently load on this machine.  Exception info: {0}: {1}</value>
+  </data>
+  <data name="WriteError" xml:space="preserve">
+    <value>Couldn't write output file "{0}"</value>
+  </data>
+  <data name="CannotWriteAssembly" xml:space="preserve">
+    <value>ResGen cannot write assemblies, only read from them. Cannot create assembly "{0}".</value>
+  </data>
+  <data name="NoName" xml:space="preserve">
+    <value>Missing value!  Expected a name / value pair like 'name = value'.  Name was "{0}"</value>
+  </data>
+  <data name="FileNotFound" xml:space="preserve">
+    <value>Couldn't find input file "{0}"</value>
+  </data>
+  <data name="SatelliteAssemblyContainsNoResourcesFile" xml:space="preserve">
+    <value>This assembly claims to be a satellite assembly, but doesn't contain any properly named .resources files as manifest resources.  The name of the files should end in {0}.resources.  There is probably a build-related problem with this assembly.</value>
+  </data>
+  <data name="CompileSwitchNotSupportedForAssemblies" xml:space="preserve">
+    <value>/compile is not supported with assemblies (.resources.dll, .dll or .exe) as input.
+Use ResGen /? for usage information.</value>
+  </data>
+  <data name="ImproperlyBuiltMainAssembly" xml:space="preserve">
+    <value>Main assembly "{1}" was built improperly.  The manifest resource "{0}" ends in .en-US.resources, when it should end in .resources.  Either rename it to something like foo.resources (and consider using the NeutralResourcesLanguageAtribute on the main assembly), or move it to a US English satellite assembly.</value>
+  </data>
+  <data name="NoResourcesFilesInAssembly" xml:space="preserve">
+    <value>This assembly claims to contain neutral resources, but doesn't contain any .resources files as manifest resources.  Either the NeutralResourcesLanguageAttribute was wrong, or there is a build-related problem with this assembly.</value>
+  </data>
+  <data name="CannotLoadAssemblyLoadFromFailed" xml:space="preserve">
+    <value>Loading assembly "{0}" failed.  {1}</value>
+  </data>
+  <data name="UsageOnWindows" xml:space="preserve">
+    <value>Microsoft (R) .NET Resource Generator 
+[Microsoft .Net Framework, Version {0}]
+{1}
+
+Usage:
+   ResGen inputFile.ext [outputFile.ext] [/str:lang[,namespace[,class[,file]]]]
+   ResGen [options] /compile inputFile1.ext[,outputFile1.resources] [...]
+   ResGen inputFile.ext2 [outputDirectory]
+Where .ext is .resX, .restext, .txt or .resources
+and .ext2 is .resources.dll, .dll or .exe. outputDirectory must already exist.
+Resources will be extracted under outputDirectory in resW format.
+
+Converts files from one resource format to another.  If the output
+filename is not specified, inputFile.resources will be used.
+Options:
+/compile        Converts a list of resource files from one format to another
+                in one bulk operation.  By default, it converts into .resources
+                files, using inputFile[i].resources for the output file name.
+/str:&lt;language&gt;[,&lt;namespace&gt;[,&lt;class name&gt;[,&lt;file name&gt;]]]] 
+                Creates a strongly-typed resource class in the specified
+                programming language using CodeDOM. In order for the strongly
+                typed resource class to work properly, the name of your output 
+                file without the .resources must match the
+                [namespace.]classname of your strongly typed resource class.
+                You may need to rename your output file before using it or
+                embedding it into an assembly. 
+/useSourcePath  Use each source file's directory as the current directory
+                for resolving relative file paths.
+/publicClass    Create the strongly typed resource class as a public class.
+                This option is ignored if the /str: option is not used.
+/r:&lt;assembly&gt;   Load types from these assemblies. A ResX file with a previous
+                version of a type will use the one in this assembly, when set.
+/define:A[,B]   For #ifdef support in .ResText files, pass a comma-separated
+                list of symbols.  ResText files can use "#ifdef A" or "#if !B".
+
+Miscellaneous:
+@&lt;file&gt;         Read response file for more options. At most one response file
+                may be specified, and its entries must be line-separated.
+
+.restext &amp; .txt files have this format:
+
+    # Use # at the beginning of a line for a comment character.
+    name=value
+    more elaborate name=value
+
+Example response file contents: 
+
+    # Use # at the beginning of a line for a comment character.
+    /useSourcePath
+    /compile
+    file1.resx,file1.resources
+    file2.resx,file2.resources
+
+</value>
+  </data>
+  <data name="ReadIn" xml:space="preserve">
+    <value>Read in {0} resources from "{1}"</value>
+  </data>
+  <data name="INFFileBracket" xml:space="preserve">
+    <value>Unexpected INF file bracket syntax - ResGen does not support text in square brackets.  Bad text: "[{0}".</value>
+  </data>
+  <data name="UnmappableResource" xml:space="preserve">
+    <value>Could not create a property on the strongly typed resource class for the resource name "{0}".</value>
+  </data>
+  <data name="UnrecognizedUltimateResourceFallbackLocation" xml:space="preserve">
+    <value>Invalid or unrecognized UltimateResourceFallbackLocation value in the NeutralResourcesLanguageAttribute for assembly "{1}". Location: "{0}"</value>
+  </data>
+  <data name="DuplicateResourceKey" xml:space="preserve">
+    <value>Duplicate resource key!  Name was: "{0}"</value>
+  </data>
+  <data name="SatelliteAssemblyContainsCode" xml:space="preserve">
+    <value>The assembly "{0}" says it is a satellite assembly, but it contains code. Main assemblies shouldn't specify the assembly culture in their manifest, and satellites should not contain code.  This is almost certainly an error in your build process.</value>
+  </data>
+  <data name="InvalidResX" xml:space="preserve">
+    <value>Invalid format or contents in input. "{0}" error trying to read input.</value>
+  </data>
+  <data name="OnlyString" xml:space="preserve">
+    <value>Only strings can be written to a .txt or .restext file; the value of '{0}' is a '{1}'</value>
+  </data>
+  <data name="BadEscape" xml:space="preserve">
+    <value>Unsupported or invalid escape character in value!  Escape char: '{0}' Name was: "{1}"</value>
+  </data>
+  <data name="AssemblyNotFullySigned" xml:space="preserve">
+    <value>Assembly "{0}" isn't fully signed.  Please fully sign this assembly using sn.exe before shipping it to customers.</value>
+  </data>
+  <data name="STRSwitchNotSupportedForAssemblies" xml:space="preserve">
+    <value>/str is not supported with assemblies (.resources.dll, .dll or .exe) as input.
+Use ResGen /? for usage information.</value>
+  </data>
+  <data name="InvalidCommandLineSyntax" xml:space="preserve">
+    <value>Invalid command line syntax.  Switch: "{0}"  Bad value: "{1}".  Use ResGen /? for usage information.</value>
+  </data>
+  <data name="DuplicateOutputFilenames" xml:space="preserve">
+    <value>Two output filenames resolved to the same output path: "{0}"</value>
+  </data>
+  <data name="NoEquals" xml:space="preserve">
+    <value>Found an equals sign at beginning of a line!  Expected a name / value pair like 'name = value'</value>
+  </data>
+  <data name="BadImageFormat" xml:space="preserve">
+    <value>Did not recognize "{0}" as a managed assembly.</value>
+  </data>
+  <data name="MalformedResponseFileEntry" xml:space="preserve">
+    <value>Response files must be line-delimited; "{0}" contains "{1}".</value>
+  </data>
+  <data name="GenericWriteError" xml:space="preserve">
+    <value>Error while writing the output file "{0}"</value>
+  </data>
+  <data name="ErrorCount" xml:space="preserve">
+    <value>{0} error(s).</value>
+  </data>
+  <data name="DoneDot" xml:space="preserve">
+    <value>Done.</value>
+  </data>
+  <data name="BadFileExtensionOnWindows" xml:space="preserve">
+    <value>The file named "{0}" does not have a known extension.  Managed resource files must end in .ResX, .restext, .txt, .resources, .resources.dll, .dll or .exe. Response files must end in .rsp and be specified as @respFile.rsp.</value>
+  </data>
+  <data name="UsageNotOnWindows" xml:space="preserve">
+    <value>Microsoft (R) .NET Resource Generator 
+[Microsoft .Net Framework, Version {0}]
+{1}
+
+Usage:
+   ResGen inputFile.ext [outputFile.ext] [/str:lang[,namespace[,class[,file]]]]
+   ResGen [options] /compile inputFile1.ext[,outputFile1.resources] [...]
+
+Where .ext is .resX, .restext, .txt, or .resources
+
+Converts files from one resource format to another.  If the output
+filename is not specified, inputFile.resources will be used.
+Options:
+/compile        Converts a list of resource files from one format to another
+                in one bulk operation.  By default, it converts into .resources
+                files, using inputFile[i].resources for the output file name.
+/str:&lt;language&gt;[,&lt;namespace&gt;[,&lt;class name&gt;[,&lt;file name&gt;]]]] 
+                Creates a strongly-typed resource class in the specified
+                programming language using CodeDOM. In order for the strongly
+                typed resource class to work properly, the name of your output 
+                file without the .resources must match the
+                [namespace.]classname of your strongly typed resource class.
+                You may need to rename your output file before using it or
+                embedding it into an assembly. 
+/useSourcePath  Use each source file's directory as the current directory
+                for resolving relative file paths.
+/publicClass    Create the strongly typed resource class as a public class.
+                This option is ignored if the /str: option is not used.
+/r:&lt;assembly&gt;   Load types from these assemblies. A ResX file with a previous
+                version of a type will use the one in this assembly, when set.
+/define:A[,B]   For #ifdef support in .ResText files, pass a comma-separated
+                list of symbols.  ResText files can use "#ifdef A" or "#if !B".
+
+Miscellaneous:
+@&lt;file&gt;         Read response file for more options. At most one response file
+                may be specified, and its entries must be line-separated.
+
+.restext &amp; .txt files have this format:
+
+    # Use # at the beginning of a line for a comment character.
+    name=value
+    more elaborate name=value
+
+Example response file contents: 
+
+    # Use # at the beginning of a line for a comment character.
+    /useSourcePath
+    /compile
+    file1.resx,file1.resources
+    file2.resx,file2.resources
+
+</value>
+  </data>
+  <data name="MissingFileLocation" xml:space="preserve">
+    <value>Can't verify assembly without a file location.</value>
+  </data>
+  <data name="SatelliteOrMalformedAssembly" xml:space="preserve">
+    <value>The assembly in file "{0}" has an assembly culture, indicating it is a satellite assembly for culture "{1}".  But satellite assembly simple names must end in ".resources", while this one's simple name is "{2}".  This is either a main assembly with the culture incorrectly set, or a satellite assembly with an incorrect simple name.</value>
+  </data>
+  <data name="UnknownFileExtension" xml:space="preserve">
+    <value>Unknown file extension "{0}" for file "{1}"</value>
+  </data>
+  <data name="CantLoadAssembly" xml:space="preserve">
+    <value>Could not load referenced assembly "{0}".  Caught a {1} saying "{2}".</value>
+  </data>
+  <data name="NoResourcesFileInAssembly" xml:space="preserve">
+    <value>Couldn't find the linked resources file "{0}" listed in the assembly manifest.</value>
+  </data>
+  <data name="BadCommandLineOption" xml:space="preserve">
+    <value>Unrecognized switch: "{0}".  Use ResGen /? for usage information.</value>
+  </data>
+  <data name="DeleteOutputFileFailed" xml:space="preserve">
+    <value>Could not delete possibly corrupted output file "{0}".</value>
+  </data>
+  <data name="SpecificError" xml:space="preserve">
+    <value>Specific exception: "{0}"  Message: "{1}"</value>
+  </data>
+  <data name="ClassnameMustMatchBasename" xml:space="preserve">
+    <value>The base name of your output file, "{0}", does not match the base name used by the strongly typed resources, "{1}".  In order for the strongly typed resources to work correctly, you will need to rename your output file to "{1}.resources".</value>
+  </data>
+  <data name="ResponseFileDoesntExist" xml:space="preserve">
+    <value>The specified response file doesn't exist. You passed in "{0}".</value>
+  </data>
+  <data name="MalformedResponseFileName" xml:space="preserve">
+    <value>You must specify response file names like this:
+@respFile.rsp
+You passed in "{0}".</value>
+  </data>
+  <data name="MustProvideOutputDirectoryNotFilename" xml:space="preserve">
+    <value>When specifying an assembly (.resources.dll, .dll or .exe) as input, an output directory must be specified.
+{0} appears to be an output filename but will be treated as a directory name.
+Use ResGen /? for usage information.</value>
+  </data>
+  <data name="InvalidIfdef" xml:space="preserve">
+    <value>Found an invalid #ifdef value, "{0}".  ResGen supports very simple syntax currently, and doesn't include parentheses, || nor &amp;&amp;.</value>
+  </data>
+  <data name="BeginSTRClassNamespace" xml:space="preserve">
+    <value>Creating strongly typed resource class "{0}.{1}"...  </value>
+  </data>
+  <data name="BadFileExtensionNotOnWindows" xml:space="preserve">
+    <value>The file named "{0}" does not have a known extension.  Managed resource files must end in .ResX, .restext, .txt, or .resources. Response files must end in .rsp and be specified as @respFile.rsp.</value>
+  </data>
+  <data name="BeginWriting" xml:space="preserve">
+    <value>Writing resource file...  </value>
+  </data>
+  <data name="MultipleResponseFiles" xml:space="preserve">
+    <value>You specified multiple response files; at most one is allowed.</value>
+  </data>
+  <data name="ValidLanguages" xml:space="preserve">
+    <value>Language names valid for the /str:&lt;language&gt; option are:</value>
+  </data>
+  <data name="ImproperlyBuiltSatelliteAssembly" xml:space="preserve">
+    <value>Satellite assembly "{2}" was built improperly.  The manifest resource "{0}" will not be found by the ResourceManager.  It must end in "{1}".</value>
+  </data>
+  <data name="CompileAndSTRDontMix" xml:space="preserve">
+    <value>Cannot use /compile &amp; /str simultaneously if you specify a class name or an output file name to the /str switch as well as multiple input files to /compile.  You would end up with duplicate classes or overwrite one of your classes.</value>
+  </data>
+  <data name="CorruptOutput" xml:space="preserve">
+    <value>Output file is possibly corrupt.  Deleting "{0}"</value>
+  </data>
+  <data name="StringsTagObsolete" xml:space="preserve">
+    <value>The "[strings]" tag is no longer necessary in your text files.  Please remove it.</value>
+  </data>
+  <data name="OutputDirectoryMustExist" xml:space="preserve">
+    <value>The specified output directory {0} does not exist.</value>
+  </data>
+  <data name="UnbalancedIfdefs" xml:space="preserve">
+    <value>Found an #ifdef but not a matching #endif before reaching the end of the file.  Unmatched #ifdef: "{0}".</value>
+  </data>
+  <data name="Microsoft_Copyright_CommandLine_Logo" xml:space="preserve">
+    <value>Copyright (C) Microsoft Corporation.  All rights reserved.</value>
+  </data>
+</root>
