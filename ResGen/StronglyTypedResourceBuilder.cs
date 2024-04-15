@@ -1,686 +1,564 @@
-﻿using System;
-using System.CodeDom;
+﻿using System.CodeDom;
 using System.CodeDom.Compiler;
 using System.Collections;
-using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO;
 using System.Reflection;
 using System.Resources;
 using System.Resources.NetStandard;
+using System.Runtime.CompilerServices;
+using System.Security;
 
 namespace ResGen
 {
-    internal static class StronglyTypedResourceBuilder
+    /// <summary>Provides support for strongly typed resources. This class cannot be inherited.</summary>
+    public static class StronglyTypedResourceBuilder
     {
-        // Note - if you add a new property to the class, add logic to reject
-        // keys of that name in VerifyResourceNames.
-        private const String ResMgrFieldName = "resourceMan";
-        private const String ResMgrPropertyName = "ResourceManager";
-        private const String CultureInfoFieldName = "resourceCulture";
-        private const String CultureInfoPropertyName = "Culture";
-
-        // When fixing up identifiers, we will replace all these chars with
-        // a single char that is valid in identifiers, such as '_'.
-        private static readonly char[] s_charsToReplace = new char[] { ' ',
-        '\u00A0' /* non-breaking space */, '.', ',', ';', '|', '~', '@',
-        '#', '%', '^', '&', '*', '+', '-', '/', '\\', '<', '>', '?', '[',
-        ']', '(', ')', '{', '}', '\"', '\'', ':', '!' };
+        private const string ResMgrFieldName = "resourceMan";
+        private const string ResMgrPropertyName = "ResourceManager";
+        private const string CultureInfoFieldName = "resourceCulture";
+        private const string CultureInfoPropertyName = "Culture";
+        private static readonly char[] CharsToReplace = new char[30]
+        {
+            ' ',
+            ' ',
+            '.',
+            ',',
+            ';',
+            '|',
+            '~',
+            '@',
+            '#',
+            '%',
+            '^',
+            '&',
+            '*',
+            '+',
+            '-',
+            '/',
+            '\\',
+            '<',
+            '>',
+            '?',
+            '[',
+            ']',
+            '(',
+            ')',
+            '{',
+            '}',
+            '"',
+            '\'',
+            ':',
+            '!'
+        };
         private const char ReplacementChar = '_';
-
-        private const String DocCommentSummaryStart = "<summary>";
-        private const String DocCommentSummaryEnd = "</summary>";
-
-        // Maximum size of a String resource to show in the doc comment for its property
+        private const string DocCommentSummaryStart = "<summary>";
+        private const string DocCommentSummaryEnd = "</summary>";
         private const int DocCommentLengthThreshold = 512;
 
-        // Save the strings for better doc comments.
-        internal sealed class ResourceData
+        /// <summary>Generates a class file that contains strongly typed properties that match the resources referenced in the specified collection.</summary>
+        /// <param name="resourceList">An <see cref="T:System.Collections.IDictionary" /> collection where each dictionary entry key/value pair is the name of a resource and the value of the resource.</param>
+        /// <param name="baseName">The name of the class to be generated.</param>
+        /// <param name="generatedCodeNamespace">The namespace of the class to be generated.</param>
+        /// <param name="codeProvider">A <see cref="T:System.CodeDom.Compiler.CodeDomProvider" /> class that provides the language in which the class will be generated.</param>
+        /// <param name="internalClass">
+        /// <see langword="true" /> to generate an internal class; <see langword="false" /> to generate a public class.</param>
+        /// <param name="unmatchable">An array that contains each resource name for which a property cannot be generated. Typically, a property cannot be generated because the resource name is not a valid identifier.</param>
+        /// <returns>A <see cref="T:System.CodeDom.CodeCompileUnit" /> container.</returns>
+        /// <exception cref="T:System.ArgumentNullException">
+        /// <paramref name="resourceList" />, <paramref name="basename" />, or <paramref name="codeProvider" /> is <see langword="null" />.</exception>
+        /// <exception cref="T:System.ArgumentException">A resource node name does not match its key in <paramref name="resourceList" />.</exception>
+        public static CodeCompileUnit Create(
+            IDictionary resourceList,
+            string baseName,
+            string generatedCodeNamespace,
+            CodeDomProvider codeProvider,
+            bool internalClass,
+            out string[] unmatchable)
         {
-            internal ResourceData(Type type, String valueAsString)
-            {
-                Type = type;
-                ValueAsString = valueAsString;
-            }
-
-            internal Type Type { get; }
-
-            internal String ValueAsString { get; }
+            return StronglyTypedResourceBuilder.Create(resourceList, baseName, generatedCodeNamespace, (string) null, codeProvider, internalClass, out unmatchable);
         }
 
-        internal static CodeCompileUnit Create(IDictionary resourceList, String baseName, String generatedCodeNamespace, CodeDomProvider codeProvider, bool internalClass, out String[] unmatchable)
-        {
-            return Create(resourceList, baseName, generatedCodeNamespace, null, codeProvider, internalClass, out unmatchable);
-        }
-
-        internal static CodeCompileUnit Create(IDictionary resourceList, String baseName, String generatedCodeNamespace, String resourcesNamespace, CodeDomProvider codeProvider, bool internalClass, out String[] unmatchable)
+        /// <summary>Generates a class file that contains strongly typed properties that match the resources referenced in the specified collection.</summary>
+        /// <param name="resourceList">An <see cref="T:System.Collections.IDictionary" /> collection where each dictionary entry key/value pair is the name of a resource and the value of the resource.</param>
+        /// <param name="baseName">The name of the class to be generated.</param>
+        /// <param name="generatedCodeNamespace">The namespace of the class to be generated.</param>
+        /// <param name="resourcesNamespace">The namespace of the resource to be generated.</param>
+        /// <param name="codeProvider">A <see cref="T:System.CodeDom.Compiler.CodeDomProvider" /> object that provides the language in which the class will be generated.</param>
+        /// <param name="internalClass">
+        /// <see langword="true" /> to generate an internal class; <see langword="false" /> to generate a public class.</param>
+        /// <param name="unmatchable">A <see cref="T:System.String" /> array that contains each resource name for which a property cannot be generated. Typically, a property cannot be generated because the resource name is not a valid identifier.</param>
+        /// <returns>A <see cref="T:System.CodeDom.CodeCompileUnit" /> container.</returns>
+        /// <exception cref="T:System.ArgumentNullException">
+        /// <paramref name="resourceList" />, <paramref name="basename" />, or <paramref name="codeProvider" /> is <see langword="null" />.</exception>
+        /// <exception cref="T:System.ArgumentException">A resource node name does not match its key in <paramref name="resourceList" />.</exception>
+        public static CodeCompileUnit Create(
+            IDictionary resourceList,
+            string baseName,
+            string generatedCodeNamespace,
+            string resourcesNamespace,
+            CodeDomProvider codeProvider,
+            bool internalClass,
+            out string[] unmatchable)
         {
             if (resourceList == null)
+                throw new ArgumentNullException(nameof (resourceList));
+            Dictionary<string, StronglyTypedResourceBuilder.ResourceData> resourceList1 = new Dictionary<string, StronglyTypedResourceBuilder.ResourceData>((IEqualityComparer<string>) StringComparer.InvariantCultureIgnoreCase);
+            foreach (DictionaryEntry resource in resourceList)
             {
-                throw new ArgumentNullException(nameof(resourceList));
-            }
-
-            var resourceTypes = new Dictionary<String, ResourceData>(StringComparer.InvariantCultureIgnoreCase);
-            foreach (DictionaryEntry de in resourceList)
-            {
-                var node = de.Value as ResXDataNode;
-                ResourceData data;
-                if (node != null)
+                StronglyTypedResourceBuilder.ResourceData resourceData;
+                if (resource.Value is ResXDataNode resXdataNode)
                 {
-                    string keyname = (string)de.Key;
-                    if (keyname != node.Name)
-                    {
-                        throw new ArgumentException(SR2.GetString(SR2.MismatchedResourceName, keyname, node.Name));
-                    }
-
-                    String typeName = node.GetValueTypeName((AssemblyName[])null);
-                    Type type = Type.GetType(typeName);
-                    String valueAsString = node.GetValue((AssemblyName[])null).ToString();
-                    data = new ResourceData(type, valueAsString);
+                    string key = (string) resource.Key;
+                    if (key != resXdataNode.Name)
+                        throw new ArgumentException(SR2.GetString("MismatchedResourceName", (object) key, (object) resXdataNode.Name));
+                    resourceData = new StronglyTypedResourceBuilder.ResourceData(Type.GetType(resXdataNode.GetValueTypeName((AssemblyName[]) null)), resXdataNode.GetValue((AssemblyName[]) null).ToString());
                 }
                 else
-                {
-                    // If the object is null, we don't have a good way of guessing the
-                    // type.  Use Object.  This will be rare after WinForms gets away
-                    // from their resource pull model in Whidbey M3.
-                    Type type = de.Value?.GetType() ?? typeof(Object);
-                    data = new ResourceData(type, de.Value?.ToString());
-                }
-                resourceTypes.Add((String)de.Key, data);
+                    resourceData = new StronglyTypedResourceBuilder.ResourceData(resource.Value == null ? typeof (object) : resource.Value.GetType(), resource.Value == null ? (string) null : resource.Value.ToString());
+                resourceList1.Add((string) resource.Key, resourceData);
             }
-
-            // Note we still need to verify the resource names are valid language
-            // keywords, etc.  So there's no point to duplicating the code above.
-
-            return InternalCreate(resourceTypes, baseName, generatedCodeNamespace, resourcesNamespace, codeProvider, internalClass, out unmatchable);
+            return StronglyTypedResourceBuilder.InternalCreate(resourceList1, baseName, generatedCodeNamespace, resourcesNamespace, codeProvider, internalClass, out unmatchable);
         }
 
-        private static CodeCompileUnit InternalCreate(Dictionary<String, ResourceData> resourceList, String baseName, String generatedCodeNamespace, String resourcesNamespace, CodeDomProvider codeProvider, bool internalClass, out String[] unmatchable)
+        private static CodeCompileUnit InternalCreate(
+            Dictionary<string, StronglyTypedResourceBuilder.ResourceData> resourceList,
+            string baseName,
+            string generatedCodeNamespace,
+            string resourcesNamespace,
+            CodeDomProvider codeProvider,
+            bool internalClass,
+            out string[] unmatchable)
         {
             if (baseName == null)
-            {
-                throw new ArgumentNullException(nameof(baseName));
-            }
+                throw new ArgumentNullException(nameof (baseName));
             if (codeProvider == null)
+                throw new ArgumentNullException(nameof (codeProvider));
+            ArrayList errors = new ArrayList(0);
+            Hashtable reverseFixupTable;
+            SortedList sortedList = StronglyTypedResourceBuilder.VerifyResourceNames(resourceList, codeProvider, errors, out reverseFixupTable);
+            string str1 = baseName;
+            if (!codeProvider.IsValidIdentifier(str1))
             {
-                throw new ArgumentNullException(nameof(codeProvider));
+                string str2 = StronglyTypedResourceBuilder.VerifyResourceName(str1, codeProvider);
+                if (str2 != null)
+                    str1 = str2;
             }
-
-            // Keep a list of errors describing known strings that couldn't be
-            // fixed up (like "4"), as well as listing all duplicate resources that
-            // were fixed up to the same name (like "A B" and "A-B" both going to
-            // "A_B").
-            var errors = new List<string>();
-
-            // Verify the resource names are valid property names, and they don't
-            // conflict.  This includes checking for language-specific keywords,
-            // translating spaces to underscores, etc.
-            SortedList<string, ResourceData> cleanedResourceList = VerifyResourceNames(resourceList, codeProvider, errors, out Dictionary<string, string> reverseFixupTable);
-
-            // Verify the class name is legal.
-            String className = baseName;
-            // Attempt to fix up class name, and throw an exception if it fails.
-            if (!codeProvider.IsValidIdentifier(className))
+            if (!codeProvider.IsValidIdentifier(str1))
+                throw new ArgumentException(SR2.GetString("InvalidIdentifier", (object) str1));
+            if (!string.IsNullOrEmpty(generatedCodeNamespace) && !codeProvider.IsValidIdentifier(generatedCodeNamespace))
             {
-                String fixedClassName = VerifyResourceName(className, codeProvider);
-                if (fixedClassName != null)
-                {
-                    className = fixedClassName;
-                }
+                string str3 = StronglyTypedResourceBuilder.VerifyResourceName(generatedCodeNamespace, codeProvider, true);
+                if (str3 != null)
+                    generatedCodeNamespace = str3;
             }
-
-            if (!codeProvider.IsValidIdentifier(className))
+            CodeCompileUnit e = new CodeCompileUnit();
+            e.ReferencedAssemblies.Add("System.dll");
+            e.UserData.Add((object) "AllowLateBound", (object) false);
+            e.UserData.Add((object) "RequireVariableDeclaration", (object) true);
+            CodeNamespace codeNamespace = new CodeNamespace(generatedCodeNamespace);
+            codeNamespace.Imports.Add(new CodeNamespaceImport("System"));
+            e.Namespaces.Add(codeNamespace);
+            CodeTypeDeclaration codeTypeDeclaration = new CodeTypeDeclaration(str1);
+            codeNamespace.Types.Add(codeTypeDeclaration);
+            StronglyTypedResourceBuilder.AddGeneratedCodeAttributeforMember((CodeTypeMember) codeTypeDeclaration);
+            TypeAttributes typeAttributes = internalClass ? TypeAttributes.NotPublic : TypeAttributes.Public;
+            codeTypeDeclaration.TypeAttributes = typeAttributes;
+            codeTypeDeclaration.Comments.Add(new CodeCommentStatement("<summary>", true));
+            codeTypeDeclaration.Comments.Add(new CodeCommentStatement(SR2.GetString("ClassDocComment"), true));
+            codeTypeDeclaration.Comments.Add(new CodeCommentStatement("</summary>", true));
+            codeTypeDeclaration.CustomAttributes.Add(new CodeAttributeDeclaration(new CodeTypeReference(typeof (DebuggerNonUserCodeAttribute))
             {
-                throw new ArgumentException(SR2.GetString(SR2.InvalidIdentifier, className));
-            }
-
-            // If we have a namespace, verify the namespace is legal, 
-            // attempting to fix it up if needed.
-            if (!String.IsNullOrEmpty(generatedCodeNamespace))
+                Options = CodeTypeReferenceOptions.GlobalReference
+            }));
+            codeTypeDeclaration.CustomAttributes.Add(new CodeAttributeDeclaration(new CodeTypeReference(typeof (CompilerGeneratedAttribute))
             {
-                if (!codeProvider.IsValidIdentifier(generatedCodeNamespace))
-                {
-                    String fixedNamespace = VerifyResourceName(generatedCodeNamespace, codeProvider, true);
-                    if (fixedNamespace != null)
-                    {
-                        generatedCodeNamespace = fixedNamespace;
-                    }
-                }
-                // Note we cannot really ensure that the generated code namespace
-                // is a valid identifier, as namespaces can have '.' and '::', but
-                // identifiers cannot.
-            }
-
-            var ccu = new CodeCompileUnit();
-            ccu.ReferencedAssemblies.Add("System.dll");
-
-            ccu.UserData.Add("AllowLateBound", false);
-            ccu.UserData.Add("RequireVariableDeclaration", true);
-
-            var ns = new CodeNamespace(generatedCodeNamespace);
-            ns.Imports.Add(new CodeNamespaceImport("System"));
-            ccu.Namespaces.Add(ns);
-
-            // Generate class
-            var srClass = new CodeTypeDeclaration(className);
-            ns.Types.Add(srClass);
-            AddGeneratedCodeAttributeforMember(srClass);
-
-            TypeAttributes ta = internalClass ? TypeAttributes.NotPublic : TypeAttributes.Public;
-            //ta |= TypeAttributes.Sealed;
-            srClass.TypeAttributes = ta;
-            srClass.Comments.Add(new CodeCommentStatement(DocCommentSummaryStart, true));
-            srClass.Comments.Add(new CodeCommentStatement(SR2.GetString(SR2.ClassDocComment), true));
-
-            var comment = new CodeCommentStatement(SR2.GetString(SR2.ClassComments1), true);
-            srClass.Comments.Add(comment);
-            comment = new CodeCommentStatement(SR2.GetString(SR2.ClassComments3), true);
-            srClass.Comments.Add(comment);
-
-            srClass.Comments.Add(new CodeCommentStatement(DocCommentSummaryEnd, true));
-            var debuggerAttrib =
-                new CodeTypeReference(typeof(System.Diagnostics.DebuggerNonUserCodeAttribute))
-                {
-                    Options = CodeTypeReferenceOptions.GlobalReference
-                };
-            srClass.CustomAttributes.Add(new CodeAttributeDeclaration(debuggerAttrib));
-
-            var compilerGenedAttrib =
-                new CodeTypeReference(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute))
-                {
-                    Options = CodeTypeReferenceOptions.GlobalReference
-                };
-            srClass.CustomAttributes.Add(new CodeAttributeDeclaration(compilerGenedAttrib));
-
-            // Figure out some basic restrictions to the code generation
+                Options = CodeTypeReferenceOptions.GlobalReference
+            }));
             bool useStatic = internalClass || codeProvider.Supports(GeneratorSupport.PublicStaticMembers);
-            EmitBasicClassMembers(srClass, generatedCodeNamespace, baseName, resourcesNamespace, internalClass, useStatic);
-
-            // Now for each resource, add a property
-            foreach (KeyValuePair<string, ResourceData> entry in cleanedResourceList)
+            bool supportsTryCatch = codeProvider.Supports(GeneratorSupport.TryCatchStatements);
+            bool useTypeInfo = codeProvider is ITargetAwareCodeDomProvider awareCodeDomProvider && !awareCodeDomProvider.SupportsProperty(typeof (Type), "Assembly", false);
+            if (useTypeInfo)
+                codeNamespace.Imports.Add(new CodeNamespaceImport("System.Reflection"));
+            StronglyTypedResourceBuilder.EmitBasicClassMembers(codeTypeDeclaration, generatedCodeNamespace, baseName, resourcesNamespace, internalClass, useStatic, supportsTryCatch, useTypeInfo);
+            foreach (DictionaryEntry dictionaryEntry in sortedList)
             {
-                String propertyName = entry.Key;
-                // The resourceName will be the original value, before fixups, if any.
-                if (!reverseFixupTable.TryGetValue(propertyName, out string resourceName))
-                {
-                    resourceName = propertyName;
-                }
-                bool r = DefineResourceFetchingProperty(propertyName, resourceName, entry.Value, srClass, internalClass, useStatic);
-                if (!r)
-                {
-                    errors.Add(propertyName);
-                }
+                string key = (string) dictionaryEntry.Key;
+                string resourceName = (string) reverseFixupTable[(object) key] ?? key;
+                if (!StronglyTypedResourceBuilder.DefineResourceFetchingProperty(key, resourceName, (StronglyTypedResourceBuilder.ResourceData) dictionaryEntry.Value, codeTypeDeclaration, internalClass, useStatic))
+                    errors.Add(dictionaryEntry.Key);
             }
-
-            unmatchable = errors.ToArray();
-
-            // Validate the generated class now
-            CodeGenerator.ValidateIdentifiers(ccu);
-
-            return ccu;
+            unmatchable = (string[]) errors.ToArray(typeof (string));
+            CodeGenerator.ValidateIdentifiers((CodeObject) e);
+            return e;
         }
 
-        internal static CodeCompileUnit Create(String resxFile, String baseName, String generatedCodeNamespace, CodeDomProvider codeProvider, bool internalClass, out String[] unmatchable)
+        /// <summary>Generates a class file that contains strongly typed properties that match the resources in the specified .resx file.</summary>
+        /// <param name="resxFile">The name of a .resx file used as input.</param>
+        /// <param name="baseName">The name of the class to be generated.</param>
+        /// <param name="generatedCodeNamespace">The namespace of the class to be generated.</param>
+        /// <param name="codeProvider">A <see cref="T:System.CodeDom.Compiler.CodeDomProvider" /> class that provides the language in which the class will be generated.</param>
+        /// <param name="internalClass">
+        /// <see langword="true" /> to generate an internal class; <see langword="false" /> to generate a public class.</param>
+        /// <param name="unmatchable">A <see cref="T:System.String" /> array that contains each resource name for which a property cannot be generated. Typically, a property cannot be generated because the resource name is not a valid identifier.</param>
+        /// <returns>A <see cref="T:System.CodeDom.CodeCompileUnit" /> container.</returns>
+        /// <exception cref="T:System.ArgumentNullException">
+        /// <paramref name="basename" /> or <paramref name="codeProvider" /> is <see langword="null" />.</exception>
+        public static CodeCompileUnit Create(
+            string resxFile,
+            string baseName,
+            string generatedCodeNamespace,
+            CodeDomProvider codeProvider,
+            bool internalClass,
+            out string[] unmatchable)
         {
-            return Create(resxFile, baseName, generatedCodeNamespace, null, codeProvider, internalClass, out unmatchable);
+            return StronglyTypedResourceBuilder.Create(resxFile, baseName, generatedCodeNamespace, (string) null, codeProvider, internalClass, out unmatchable);
         }
 
-        [SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly")]
-        internal static CodeCompileUnit Create(String resxFile, String baseName, String generatedCodeNamespace, String resourcesNamespace, CodeDomProvider codeProvider, bool internalClass, out String[] unmatchable)
+        /// <summary>Generates a class file that contains strongly typed properties that match the resources in the specified .resx file.</summary>
+        /// <param name="resxFile">The name of a .resx file used as input.</param>
+        /// <param name="baseName">The name of the class to be generated.</param>
+        /// <param name="generatedCodeNamespace">The namespace of the class to be generated.</param>
+        /// <param name="resourcesNamespace">The namespace of the resource to be generated.</param>
+        /// <param name="codeProvider">A <see cref="T:System.CodeDom.Compiler.CodeDomProvider" /> class that provides the language in which the class will be generated.</param>
+        /// <param name="internalClass">
+        /// <see langword="true" /> to generate an internal class; <see langword="false" /> to generate a public class.</param>
+        /// <param name="unmatchable">A <see cref="T:System.String" /> array that contains each resource name for which a property cannot be generated. Typically, a property cannot be generated because the resource name is not a valid identifier.</param>
+        /// <returns>A <see cref="T:System.CodeDom.CodeCompileUnit" /> container.</returns>
+        /// <exception cref="T:System.ArgumentNullException">
+        /// <paramref name="basename" /> or <paramref name="codeProvider" /> is <see langword="null" />.</exception>
+        public static CodeCompileUnit Create(
+            string resxFile,
+            string baseName,
+            string generatedCodeNamespace,
+            string resourcesNamespace,
+            CodeDomProvider codeProvider,
+            bool internalClass,
+            out string[] unmatchable)
         {
             if (resxFile == null)
+                throw new ArgumentNullException(nameof (resxFile));
+            Dictionary<string, StronglyTypedResourceBuilder.ResourceData> resourceList = new Dictionary<string, StronglyTypedResourceBuilder.ResourceData>((IEqualityComparer<string>) StringComparer.InvariantCultureIgnoreCase);
+            using (ResXResourceReader resXresourceReader = new ResXResourceReader(resxFile))
             {
-                throw new ArgumentNullException(nameof(resxFile));
-            }
-
-            // Read the resources from a ResX file into a dictionary - name & type name
-            Dictionary<String, ResourceData> resourceList = new Dictionary<String, ResourceData>(StringComparer.InvariantCultureIgnoreCase);
-            using (ResXResourceReader rr = new ResXResourceReader(resxFile))
-            {
-                rr.UseResXDataNodes = true;
-                foreach (DictionaryEntry de in rr)
+                resXresourceReader.UseResXDataNodes = true;
+                foreach (DictionaryEntry dictionaryEntry in resXresourceReader)
                 {
-                    var node = (ResXDataNode)de.Value;
-                    String typeName = node.GetValueTypeName((AssemblyName[])null);
-                    Type type = Type.GetType(typeName);
-                    String valueAsString = node.GetValue((AssemblyName[])null).ToString();
-                    var data = new ResourceData(type, valueAsString);
-                    resourceList.Add((String)de.Key, data);
+                    ResXDataNode resXdataNode = (ResXDataNode) dictionaryEntry.Value;
+                    StronglyTypedResourceBuilder.ResourceData resourceData = new StronglyTypedResourceBuilder.ResourceData(Type.GetType(resXdataNode.GetValueTypeName((AssemblyName[]) null)), resXdataNode.GetValue((AssemblyName[]) null).ToString());
+                    resourceList.Add((string) dictionaryEntry.Key, resourceData);
                 }
             }
-
-            // Note we still need to verify the resource names are valid language
-            // keywords, etc.  So there's no point to duplicating the code above.
-
-            return InternalCreate(resourceList, baseName, generatedCodeNamespace, resourcesNamespace, codeProvider, internalClass, out unmatchable);
+            return StronglyTypedResourceBuilder.InternalCreate(resourceList, baseName, generatedCodeNamespace, resourcesNamespace, codeProvider, internalClass, out unmatchable);
         }
 
         private static void AddGeneratedCodeAttributeforMember(CodeTypeMember typeMember)
         {
-            var generatedCodeAttrib = new CodeAttributeDeclaration(new CodeTypeReference(typeof(GeneratedCodeAttribute)));
-            generatedCodeAttrib.AttributeType.Options = CodeTypeReferenceOptions.GlobalReference;
-            var toolArg = new CodeAttributeArgument(new CodePrimitiveExpression(typeof(StronglyTypedResourceBuilder).FullName));
-            var versionArg = new CodeAttributeArgument(new CodePrimitiveExpression(MSBuildConstants.CurrentAssemblyVersion));
-
-            generatedCodeAttrib.Arguments.Add(toolArg);
-            generatedCodeAttrib.Arguments.Add(versionArg);
-
-            typeMember.CustomAttributes.Add(generatedCodeAttrib);
+            CodeAttributeDeclaration attributeDeclaration = new CodeAttributeDeclaration(new CodeTypeReference(typeof (GeneratedCodeAttribute)));
+            attributeDeclaration.AttributeType.Options = CodeTypeReferenceOptions.GlobalReference;
+            CodeAttributeArgument attributeArgument1 = new CodeAttributeArgument((CodeExpression) new CodePrimitiveExpression((object) typeof (StronglyTypedResourceBuilder).FullName));
+            CodeAttributeArgument attributeArgument2 = new CodeAttributeArgument((CodeExpression) new CodePrimitiveExpression((object) "4.0.0.0"));
+            attributeDeclaration.Arguments.Add(attributeArgument1);
+            attributeDeclaration.Arguments.Add(attributeArgument2);
+            typeMember.CustomAttributes.Add(attributeDeclaration);
         }
 
-        [SuppressMessage("Microsoft.Globalization", "CA1303:DoNotPassLiteralsAsLocalizedParameters")]
-        private static void EmitBasicClassMembers(CodeTypeDeclaration srClass, String nameSpace, String baseName, String resourcesNamespace, bool internalClass, bool useStatic)
+        private static void EmitBasicClassMembers(
+            CodeTypeDeclaration srClass,
+            string nameSpace,
+            string baseName,
+            string resourcesNamespace,
+            bool internalClass,
+            bool useStatic,
+            bool supportsTryCatch,
+            bool useTypeInfo)
         {
-            const String tmpVarName = "temp";
-            String resMgrCtorParam;
-
-            if (resourcesNamespace != null)
-            {
-                if (resourcesNamespace.Length > 0)
-                    resMgrCtorParam = resourcesNamespace + '.' + baseName;
-                else
-                    resMgrCtorParam = baseName;
-            }
-            else if (!string.IsNullOrEmpty(nameSpace))
-            {
-                resMgrCtorParam = nameSpace + '.' + baseName;
-            }
+            string str = resourcesNamespace == null ? (nameSpace == null || nameSpace.Length <= 0 ? baseName : nameSpace + "." + baseName) : (resourcesNamespace.Length <= 0 ? baseName : resourcesNamespace + "." + baseName);
+            CodeCommentStatement commentStatement1 = new CodeCommentStatement(SR2.GetString("ClassComments1"));
+            srClass.Comments.Add(commentStatement1);
+            CodeCommentStatement commentStatement2 = new CodeCommentStatement(SR2.GetString("ClassComments2"));
+            srClass.Comments.Add(commentStatement2);
+            CodeCommentStatement commentStatement3 = new CodeCommentStatement(SR2.GetString("ClassComments3"));
+            srClass.Comments.Add(commentStatement3);
+            CodeCommentStatement commentStatement4 = new CodeCommentStatement(SR2.GetString("ClassComments4"));
+            srClass.Comments.Add(commentStatement4);
+            CodeAttributeDeclaration attributeDeclaration1 = new CodeAttributeDeclaration(new CodeTypeReference(typeof (SuppressMessageAttribute)));
+            attributeDeclaration1.AttributeType.Options = CodeTypeReferenceOptions.GlobalReference;
+            attributeDeclaration1.Arguments.Add(new CodeAttributeArgument((CodeExpression) new CodePrimitiveExpression((object) "Microsoft.Performance")));
+            attributeDeclaration1.Arguments.Add(new CodeAttributeArgument((CodeExpression) new CodePrimitiveExpression((object) "CA1811:AvoidUncalledPrivateCode")));
+            CodeConstructor codeConstructor = new CodeConstructor();
+            codeConstructor.CustomAttributes.Add(attributeDeclaration1);
+            if (useStatic | internalClass)
+                codeConstructor.Attributes = MemberAttributes.FamilyAndAssembly;
             else
-            {
-                resMgrCtorParam = baseName;
-            }
-
-            var suppressMessageAttrib = new CodeAttributeDeclaration(new CodeTypeReference(typeof(SuppressMessageAttribute)));
-            suppressMessageAttrib.AttributeType.Options = CodeTypeReferenceOptions.GlobalReference;
-            suppressMessageAttrib.Arguments.Add(new CodeAttributeArgument(new CodePrimitiveExpression("Microsoft.Performance")));
-            suppressMessageAttrib.Arguments.Add(new CodeAttributeArgument(new CodePrimitiveExpression("CA1811:AvoidUncalledPrivateCode")));
-
-            // Emit a constructor - make it protected even if it is a "static" class to allow subclassing
-            CodeConstructor ctor = new CodeConstructor();
-            ctor.CustomAttributes.Add(suppressMessageAttrib);
-            if (useStatic || internalClass)
-                ctor.Attributes = MemberAttributes.FamilyAndAssembly;
-            else
-                ctor.Attributes = MemberAttributes.Public;
-            srClass.Members.Add(ctor);
-
-            // Emit _resMgr field.
-            var ResMgrCodeTypeReference = new CodeTypeReference(typeof(ResourceManager), CodeTypeReferenceOptions.GlobalReference);
-            var field = new CodeMemberField(ResMgrCodeTypeReference, ResMgrFieldName)
-            {
-                Attributes = MemberAttributes.Private
-            };
+                codeConstructor.Attributes = MemberAttributes.Public;
+            srClass.Members.Add((CodeTypeMember) codeConstructor);
+            CodeTypeReference codeTypeReference = new CodeTypeReference(typeof (ResourceManager), CodeTypeReferenceOptions.GlobalReference);
+            CodeMemberField codeMemberField1 = new CodeMemberField(codeTypeReference, "resourceMan");
+            codeMemberField1.Attributes = MemberAttributes.Private;
             if (useStatic)
-                field.Attributes |= MemberAttributes.Static;
-            srClass.Members.Add(field);
-
-            // Emit _resCulture field, and leave it set to null.
-            var CultureTypeReference = new CodeTypeReference(typeof(CultureInfo), CodeTypeReferenceOptions.GlobalReference);
-            field = new CodeMemberField(CultureTypeReference, CultureInfoFieldName);
-            field.Attributes = MemberAttributes.Private;
+                codeMemberField1.Attributes |= MemberAttributes.Static;
+            srClass.Members.Add((CodeTypeMember) codeMemberField1);
+            CodeTypeReference type = new CodeTypeReference(typeof (CultureInfo), CodeTypeReferenceOptions.GlobalReference);
+            CodeMemberField codeMemberField2 = new CodeMemberField(type, "resourceCulture");
+            codeMemberField2.Attributes = MemberAttributes.Private;
             if (useStatic)
-                field.Attributes |= MemberAttributes.Static;
-            srClass.Members.Add(field);
-
-            // Emit ResMgr property
-            CodeMemberProperty resMgr = new CodeMemberProperty();
-            srClass.Members.Add(resMgr);
-            resMgr.Name = ResMgrPropertyName;
-            resMgr.HasGet = true;
-            resMgr.HasSet = false;
-            resMgr.Type = ResMgrCodeTypeReference;
+                codeMemberField2.Attributes |= MemberAttributes.Static;
+            srClass.Members.Add((CodeTypeMember) codeMemberField2);
+            CodeMemberProperty codeMemberProperty1 = new CodeMemberProperty();
+            srClass.Members.Add((CodeTypeMember) codeMemberProperty1);
+            codeMemberProperty1.Name = "ResourceManager";
+            codeMemberProperty1.HasGet = true;
+            codeMemberProperty1.HasSet = false;
+            codeMemberProperty1.Type = codeTypeReference;
             if (internalClass)
-                resMgr.Attributes = MemberAttributes.Assembly;
+                codeMemberProperty1.Attributes = MemberAttributes.Assembly;
             else
-                resMgr.Attributes = MemberAttributes.Public;
+                codeMemberProperty1.Attributes = MemberAttributes.Public;
             if (useStatic)
-                resMgr.Attributes |= MemberAttributes.Static;
-
-            // Mark the ResMgr property as advanced
-            var editorBrowsableStateTypeRef =
-                new CodeTypeReference(typeof(System.ComponentModel.EditorBrowsableState))
+                codeMemberProperty1.Attributes |= MemberAttributes.Static;
+            CodeAttributeDeclaration attributeDeclaration2 = new CodeAttributeDeclaration("System.ComponentModel.EditorBrowsableAttribute", new CodeAttributeArgument[1]
+            {
+                new CodeAttributeArgument((CodeExpression) new CodeFieldReferenceExpression((CodeExpression) new CodeTypeReferenceExpression(new CodeTypeReference(typeof (EditorBrowsableState))
                 {
                     Options = CodeTypeReferenceOptions.GlobalReference
-                };
-
-            var editorBrowsableStateAdvanced = new CodeAttributeArgument(new CodeFieldReferenceExpression(new CodeTypeReferenceExpression(editorBrowsableStateTypeRef), "Advanced"));
-            var editorBrowsableAdvancedAttribute = new CodeAttributeDeclaration("System.ComponentModel.EditorBrowsableAttribute", editorBrowsableStateAdvanced);
-            editorBrowsableAdvancedAttribute.AttributeType.Options = CodeTypeReferenceOptions.GlobalReference;
-            resMgr.CustomAttributes.Add(editorBrowsableAdvancedAttribute);
-
-            // Emit the Culture property (read/write)
-            var culture = new CodeMemberProperty();
-            srClass.Members.Add(culture);
-            culture.Name = CultureInfoPropertyName;
-            culture.HasGet = true;
-            culture.HasSet = true;
-            culture.Type = CultureTypeReference;
+                }), "Advanced"))
+            });
+            attributeDeclaration2.AttributeType.Options = CodeTypeReferenceOptions.GlobalReference;
+            codeMemberProperty1.CustomAttributes.Add(attributeDeclaration2);
+            CodeMemberProperty codeMemberProperty2 = new CodeMemberProperty();
+            srClass.Members.Add((CodeTypeMember) codeMemberProperty2);
+            codeMemberProperty2.Name = "Culture";
+            codeMemberProperty2.HasGet = true;
+            codeMemberProperty2.HasSet = true;
+            codeMemberProperty2.Type = type;
             if (internalClass)
-                culture.Attributes = MemberAttributes.Assembly;
+                codeMemberProperty2.Attributes = MemberAttributes.Assembly;
             else
-                culture.Attributes = MemberAttributes.Public;
-
+                codeMemberProperty2.Attributes = MemberAttributes.Public;
             if (useStatic)
-                culture.Attributes |= MemberAttributes.Static;
-
-            // Mark the Culture property as advanced
-            culture.CustomAttributes.Add(editorBrowsableAdvancedAttribute);
-
-            /*
-              // Here's what I'm trying to emit.  Since not all languages support
-              // try/finally, we'll avoid our double lock pattern here.
-              // This will only hurt perf when we get two threads racing through
-              // this method the first time.  Unfortunate, but not a big deal.
-              // Also, the .NET Compact Framework doesn't support 
-              // Thread.MemoryBarrier (they only run on processors w/ a strong 
-              // memory model, and who knows about IA64...)
-              // Once we have Interlocked.CompareExchange<T>, we should use it here.
-              if (_resMgr == null) {
-                  ResourceManager tmp = new ResourceManager("<resources-name-with-namespace>", typeof("<class-name>").Assembly);
-                  _resMgr = tmp;
-              }
-              return _resMgr;
-             */
-            var field_resMgr = new CodeFieldReferenceExpression(null, ResMgrFieldName);
-            var object_equalsMethod = new CodeMethodReferenceExpression(new CodeTypeReferenceExpression(typeof(Object)), "ReferenceEquals");
-
-            var isResMgrNull = new CodeMethodInvokeExpression(object_equalsMethod, field_resMgr, new CodePrimitiveExpression(null));
-
-            // typeof(<class-name>).Assembly
-            var getAssembly = new CodePropertyReferenceExpression(new CodeTypeOfExpression(new CodeTypeReference(srClass.Name)), "Assembly");
-
-            // new ResourceManager(resMgrCtorParam, typeof(<class-name>).Assembly);
-            var newResMgr = new CodeObjectCreateExpression(ResMgrCodeTypeReference, new CodePrimitiveExpression(resMgrCtorParam), getAssembly);
-
-            var init = new CodeStatement[2];
-            init[0] = new CodeVariableDeclarationStatement(ResMgrCodeTypeReference, tmpVarName, newResMgr);
-            init[1] = new CodeAssignStatement(field_resMgr, new CodeVariableReferenceExpression(tmpVarName));
-
-            resMgr.GetStatements.Add(new CodeConditionStatement(isResMgrNull, init));
-            resMgr.GetStatements.Add(new CodeMethodReturnStatement(field_resMgr));
-
-            // Add a doc comment to the ResourceManager property
-            resMgr.Comments.Add(new CodeCommentStatement(DocCommentSummaryStart, true));
-            resMgr.Comments.Add(new CodeCommentStatement(SR2.GetString(SR2.ResMgrPropertyComment), true));
-            resMgr.Comments.Add(new CodeCommentStatement(DocCommentSummaryEnd, true));
-
-            // Emit code for Culture property
-            var field_resCulture = new CodeFieldReferenceExpression(null, CultureInfoFieldName);
-            culture.GetStatements.Add(new CodeMethodReturnStatement(field_resCulture));
-
-            var newCulture = new CodePropertySetValueReferenceExpression();
-            culture.SetStatements.Add(new CodeAssignStatement(field_resCulture, newCulture));
-
-            // Add a doc comment to Culture property
-            culture.Comments.Add(new CodeCommentStatement(DocCommentSummaryStart, true));
-            culture.Comments.Add(new CodeCommentStatement(SR2.GetString(SR2.CulturePropertyComment1), true));
-            culture.Comments.Add(new CodeCommentStatement(SR2.GetString(SR2.CulturePropertyComment2), true));
-            culture.Comments.Add(new CodeCommentStatement(DocCommentSummaryEnd, true));
+                codeMemberProperty2.Attributes |= MemberAttributes.Static;
+            codeMemberProperty2.CustomAttributes.Add(attributeDeclaration2);
+            CodeFieldReferenceExpression referenceExpression1 = new CodeFieldReferenceExpression((CodeExpression) null, "resourceMan");
+            CodeMethodInvokeExpression condition = new CodeMethodInvokeExpression(new CodeMethodReferenceExpression((CodeExpression) new CodeTypeReferenceExpression(typeof (object)), "ReferenceEquals"), new CodeExpression[2]
+            {
+                (CodeExpression) referenceExpression1,
+                (CodeExpression) new CodePrimitiveExpression((object) null)
+            });
+            CodePropertyReferenceExpression referenceExpression2 = !useTypeInfo ? new CodePropertyReferenceExpression((CodeExpression) new CodeTypeOfExpression(new CodeTypeReference(srClass.Name)), "Assembly") : new CodePropertyReferenceExpression((CodeExpression) new CodeMethodInvokeExpression((CodeExpression) new CodeTypeOfExpression(new CodeTypeReference(srClass.Name)), "GetTypeInfo", new CodeExpression[0]), "Assembly");
+            CodeObjectCreateExpression initExpression = new CodeObjectCreateExpression(codeTypeReference, new CodeExpression[2]
+            {
+                (CodeExpression) new CodePrimitiveExpression((object) str),
+                (CodeExpression) referenceExpression2
+            });
+            CodeStatement[] codeStatementArray = new CodeStatement[2]
+            {
+                (CodeStatement) new CodeVariableDeclarationStatement(codeTypeReference, "temp", (CodeExpression) initExpression),
+                (CodeStatement) new CodeAssignStatement((CodeExpression) referenceExpression1, (CodeExpression) new CodeVariableReferenceExpression("temp"))
+            };
+            codeMemberProperty1.GetStatements.Add((CodeStatement) new CodeConditionStatement((CodeExpression) condition, codeStatementArray));
+            codeMemberProperty1.GetStatements.Add((CodeStatement) new CodeMethodReturnStatement((CodeExpression) referenceExpression1));
+            codeMemberProperty1.Comments.Add(new CodeCommentStatement("<summary>", true));
+            codeMemberProperty1.Comments.Add(new CodeCommentStatement(SR2.GetString("ResMgrPropertyComment"), true));
+            codeMemberProperty1.Comments.Add(new CodeCommentStatement("</summary>", true));
+            CodeFieldReferenceExpression referenceExpression3 = new CodeFieldReferenceExpression((CodeExpression) null, "resourceCulture");
+            codeMemberProperty2.GetStatements.Add((CodeStatement) new CodeMethodReturnStatement((CodeExpression) referenceExpression3));
+            CodePropertySetValueReferenceExpression right = new CodePropertySetValueReferenceExpression();
+            codeMemberProperty2.SetStatements.Add((CodeStatement) new CodeAssignStatement((CodeExpression) referenceExpression3, (CodeExpression) right));
+            codeMemberProperty2.Comments.Add(new CodeCommentStatement("<summary>", true));
+            codeMemberProperty2.Comments.Add(new CodeCommentStatement(SR2.GetString("CulturePropertyComment1"), true));
+            codeMemberProperty2.Comments.Add(new CodeCommentStatement(SR2.GetString("CulturePropertyComment2"), true));
+            codeMemberProperty2.Comments.Add(new CodeCommentStatement("</summary>", true));
         }
 
-        // Helper method for DefineResourceFetchingProperty
-        // Truncates a comment string if it is too long and ensures it is safely encoded for XML.
         private static string TruncateAndFormatCommentStringForOutput(string commentString)
         {
             if (commentString != null)
             {
-                // Stop at some length
-                if (commentString.Length > DocCommentLengthThreshold)
-                    commentString = SR2.GetString(SR2.StringPropertyTruncatedComment, commentString.Substring(0, DocCommentLengthThreshold));
-
-                // Encode the comment so it is safe for xml.  SecurityElement.Escape is the only method I've found to do this. 
-                commentString = System.Security.SecurityElement.Escape(commentString);
+                if (commentString.Length > 512)
+                    commentString = SR2.GetString("StringPropertyTruncatedComment", (object) commentString.Substring(0, 512));
+                commentString = SecurityElement.Escape(commentString);
             }
-
             return commentString;
         }
 
-        // Defines a property like this:
-        // {internal|internal} {static} Point MyPoint {
-        //     get {
-        //          Object obj = ResourceManager.GetObject("MyPoint", _resCulture);
-        //          return (Point) obj; }
-        // }
-        // Special cases static vs. non-static, as well as internal vs. internal.
-        // Also note the resource name could contain spaces, etc, while the 
-        // property name has to be a valid language identifier.
-        [SuppressMessage("Microsoft.Globalization", "CA1303:DoNotPassLiteralsAsLocalizedParameters")]
-        private static bool DefineResourceFetchingProperty(String propertyName, String resourceName, ResourceData data, CodeTypeDeclaration srClass, bool internalClass, bool useStatic)
+        private static bool DefineResourceFetchingProperty(
+            string propertyName,
+            string resourceName,
+            StronglyTypedResourceBuilder.ResourceData data,
+            CodeTypeDeclaration srClass,
+            bool internalClass,
+            bool useStatic)
         {
-            var prop = new CodeMemberProperty
-            {
-                Name = propertyName,
-                HasGet = true,
-                HasSet = false
-            };
-
+            CodeMemberProperty codeMemberProperty = new CodeMemberProperty();
+            codeMemberProperty.Name = propertyName;
+            codeMemberProperty.HasGet = true;
+            codeMemberProperty.HasSet = false;
             Type type = data.Type;
-            if (type == null)
-            {
+            if (type == (Type) null)
                 return false;
-            }
-
-            if (type == typeof(MemoryStream))
-            {
-                type = typeof(UnmanagedMemoryStream);
-            }
-
-            // Ensure type is internalally visible.  This is necessary to ensure
-            // users can access classes via a base type.  Imagine a class like
-            // Image or Stream as a internalally available base class, then an 
-            // internal type like MyBitmap or __UnmanagedMemoryStream as an 
-            // internal implementation for that base class.  For internalally 
-            // available strongly typed resource classes, we must return the 
-            // internal type.  For simplicity, we'll do that for internal strongly 
-            // typed resource classes as well.  Ideally we'd also like to check
-            // for interfaces like IList, but I don't know how to do that without
-            // special casing collection interfaces & ignoring serialization 
-            // interfaces or IDisposable.
+            if (type == typeof (MemoryStream))
+                type = typeof (UnmanagedMemoryStream);
             while (!type.IsPublic)
-            {
                 type = type.BaseType;
-            }
-
-            var valueType = new CodeTypeReference(type);
-            prop.Type = valueType;
+            CodeTypeReference targetType = new CodeTypeReference(type);
+            codeMemberProperty.Type = targetType;
             if (internalClass)
-                prop.Attributes = MemberAttributes.Assembly;
+                codeMemberProperty.Attributes = MemberAttributes.Assembly;
             else
-                prop.Attributes = MemberAttributes.Public;
-
+                codeMemberProperty.Attributes = MemberAttributes.Public;
             if (useStatic)
-                prop.Attributes |= MemberAttributes.Static;
-
-            // For Strings, emit this:
-            //    return ResourceManager.GetString("name", _resCulture);
-            // For Streams, emit this:
-            //    return ResourceManager.GetStream("name", _resCulture);
-            // For Objects, emit this:
-            //    Object obj = ResourceManager.GetObject("name", _resCulture);
-            //    return (MyValueType) obj;
-            var resMgr = new CodePropertyReferenceExpression(null, "ResourceManager");
-            var resCultureField = new CodeFieldReferenceExpression((useStatic) ? null : new CodeThisReferenceExpression(), CultureInfoFieldName);
-
-            bool isString = type == typeof(String);
-            bool isStream = type == typeof(UnmanagedMemoryStream) || type == typeof(MemoryStream);
-            String getMethodName;
-            String text;
-            String valueAsString = TruncateAndFormatCommentStringForOutput(data.ValueAsString);
-            String typeName = String.Empty;
-
-            if (!isString) // Stream or Object
-            {
-                typeName = TruncateAndFormatCommentStringForOutput(type.ToString());
-            }
-
-            if (isString)
-                getMethodName = "GetString";
-            else if (isStream)
-                getMethodName = "GetStream";
+                codeMemberProperty.Attributes |= MemberAttributes.Static;
+            CodePropertyReferenceExpression targetObject = new CodePropertyReferenceExpression((CodeExpression) null, "ResourceManager");
+            CodeFieldReferenceExpression referenceExpression = new CodeFieldReferenceExpression(useStatic ? (CodeExpression) null : (CodeExpression) new CodeThisReferenceExpression(), "resourceCulture");
+            bool flag1 = type == typeof (string);
+            bool flag2 = type == typeof (UnmanagedMemoryStream) || type == typeof (MemoryStream);
+            string empty1 = string.Empty;
+            string empty2 = string.Empty;
+            string b = StronglyTypedResourceBuilder.TruncateAndFormatCommentStringForOutput(data.ValueAsString);
+            string a = string.Empty;
+            if (!flag1)
+                a = StronglyTypedResourceBuilder.TruncateAndFormatCommentStringForOutput(type.ToString());
+            string methodName = !flag1 ? (!flag2 ? "GetObject" : "GetStream") : "GetString";
+            string text;
+            if (flag1)
+                text = SR2.GetString("StringPropertyComment", (object) b);
+            else if (b == null || string.Equals(a, b))
+                text = SR2.GetString("NonStringPropertyComment", (object) a);
             else
-                getMethodName = "GetObject";
-
-            if (isString)
+                text = SR2.GetString("NonStringPropertyDetailedComment", (object) a, (object) b);
+            codeMemberProperty.Comments.Add(new CodeCommentStatement("<summary>", true));
+            codeMemberProperty.Comments.Add(new CodeCommentStatement(text, true));
+            codeMemberProperty.Comments.Add(new CodeCommentStatement("</summary>", true));
+            CodeExpression codeExpression = (CodeExpression) new CodeMethodInvokeExpression((CodeExpression) targetObject, methodName, new CodeExpression[2]
             {
-                text = SR2.GetString(SR2.StringPropertyComment, valueAsString);
-            }
-            else
-            { // Stream or Object
-                if (valueAsString == null ||
-                    String.Equals(typeName, valueAsString)) // If the type did not override ToString, ToString just returns the type name.
-                    text = SR2.GetString(SR2.NonStringPropertyComment, typeName);
-                else
-                    text = SR2.GetString(SR2.NonStringPropertyDetailedComment, typeName, valueAsString);
-            }
-
-            prop.Comments.Add(new CodeCommentStatement(DocCommentSummaryStart, true));
-            prop.Comments.Add(new CodeCommentStatement(text, true));
-            prop.Comments.Add(new CodeCommentStatement(DocCommentSummaryEnd, true));
-
-            var getValue = new CodeMethodInvokeExpression(resMgr, getMethodName, new CodePrimitiveExpression(resourceName), resCultureField);
-            CodeMethodReturnStatement ret;
-            if (isString || isStream)
+                (CodeExpression) new CodePrimitiveExpression((object) resourceName),
+                (CodeExpression) referenceExpression
+            });
+            CodeMethodReturnStatement methodReturnStatement;
+            if (flag1 | flag2)
             {
-                ret = new CodeMethodReturnStatement(getValue);
+                methodReturnStatement = new CodeMethodReturnStatement(codeExpression);
             }
             else
             {
-                var returnObj = new CodeVariableDeclarationStatement(typeof(Object), "obj", getValue);
-                prop.GetStatements.Add(returnObj);
-
-                ret = new CodeMethodReturnStatement(new CodeCastExpression(valueType, new CodeVariableReferenceExpression("obj")));
+                CodeVariableDeclarationStatement declarationStatement = new CodeVariableDeclarationStatement(typeof (object), "obj", codeExpression);
+                codeMemberProperty.GetStatements.Add((CodeStatement) declarationStatement);
+                methodReturnStatement = new CodeMethodReturnStatement((CodeExpression) new CodeCastExpression(targetType, (CodeExpression) new CodeVariableReferenceExpression("obj")));
             }
-            prop.GetStatements.Add(ret);
-
-            srClass.Members.Add(prop);
+            codeMemberProperty.GetStatements.Add((CodeStatement) methodReturnStatement);
+            srClass.Members.Add((CodeTypeMember) codeMemberProperty);
             return true;
         }
 
-        // Returns a valid identifier made from key, or null if it can't.
-        internal static String VerifyResourceName(String key, CodeDomProvider provider)
+        /// <summary>Generates a valid resource string based on the specified input string and code provider.</summary>
+        /// <param name="key">The string to verify and, if necessary, convert to a valid resource name.</param>
+        /// <param name="provider">A <see cref="T:System.CodeDom.Compiler.CodeDomProvider" /> object that specifies the target language to use.</param>
+        /// <returns>A valid resource name derived from the <paramref name="key" /> parameter. Any invalid tokens are replaced with the underscore (_) character, or <see langword="null" /> if the derived string still contains invalid characters according to the language specified by the <paramref name="provider" /> parameter.</returns>
+        /// <exception cref="T:System.ArgumentNullException">
+        /// <paramref name="key" /> or <paramref name="provider" /> is <see langword="null" />.</exception>
+        public static string VerifyResourceName(string key, CodeDomProvider provider)
         {
-            return VerifyResourceName(key, provider, false);
+            return StronglyTypedResourceBuilder.VerifyResourceName(key, provider, false);
         }
 
-        // Once CodeDom provides a way to verify a namespace name, revisit this method.
-        private static String VerifyResourceName(String key, CodeDomProvider provider, bool isNameSpace)
+        private static string VerifyResourceName(
+            string key,
+            CodeDomProvider provider,
+            bool isNameSpace)
         {
             if (key == null)
-                throw new ArgumentNullException(nameof(key));
+                throw new ArgumentNullException(nameof (key));
             if (provider == null)
-                throw new ArgumentNullException(nameof(provider));
-
-            foreach (char c in s_charsToReplace)
+                throw new ArgumentNullException(nameof (provider));
+            foreach (char oldChar in StronglyTypedResourceBuilder.CharsToReplace)
             {
-                // For namespaces, allow . and ::
-                if (!(isNameSpace && (c == '.' || c == ':')))
-                    key = key.Replace(c, ReplacementChar);
+                if (!isNameSpace || oldChar != '.' && oldChar != ':')
+                    key = key.Replace(oldChar, '_');
             }
-
             if (provider.IsValidIdentifier(key))
                 return key;
-
-            // Now try fixing up keywords like "for".  
             key = provider.CreateValidIdentifier(key);
             if (provider.IsValidIdentifier(key))
                 return key;
-
-            // make one last ditch effort by prepending _.  This fixes keys that start with a number
             key = "_" + key;
-            if (provider.IsValidIdentifier(key))
-                return key;
-
-            return null;
+            return provider.IsValidIdentifier(key) ? key : (string) null;
         }
 
-        private static SortedList<string, ResourceData> VerifyResourceNames(
-            Dictionary<String, ResourceData> resourceList,
+        private static SortedList VerifyResourceNames(
+            Dictionary<string, StronglyTypedResourceBuilder.ResourceData> resourceList,
             CodeDomProvider codeProvider,
-            List<string> errors,
-            out Dictionary<string, string> reverseFixupTable)
+            ArrayList errors,
+            out Hashtable reverseFixupTable)
         {
-            reverseFixupTable = new Dictionary<string, string>(0, StringComparer.InvariantCultureIgnoreCase);
-            var cleanedResourceList =
-                new SortedList<string, ResourceData>(StringComparer.InvariantCultureIgnoreCase)
-                {
-                    Capacity = resourceList.Count
-                };
-
-            foreach (KeyValuePair<String, ResourceData> entry in resourceList)
+            reverseFixupTable = new Hashtable(0, (IEqualityComparer) StringComparer.InvariantCultureIgnoreCase);
+            SortedList sortedList = new SortedList((IComparer) StringComparer.InvariantCultureIgnoreCase, resourceList.Count);
+            foreach (KeyValuePair<string, StronglyTypedResourceBuilder.ResourceData> resource in resourceList)
             {
-                String key = entry.Key;
-
-                // Disallow a property named ResourceManager or Culture - we add 
-                // those.  (Any other properties we add also must be listed here)
-                // Also disallow resource values of type Void.
-                if (String.Equals(key, ResMgrPropertyName) ||
-                    String.Equals(key, CultureInfoPropertyName) ||
-                    typeof(void) == entry.Value.Type)
+                string str1 = resource.Key;
+                if (string.Equals(str1, "ResourceManager") || string.Equals(str1, "Culture") || typeof (void) == resource.Value.Type)
+                    errors.Add((object) str1);
+                else if ((str1.Length <= 0 || str1[0] != '$') && (str1.Length <= 1 || str1[0] != '>' || str1[1] != '>'))
                 {
-                    errors.Add(key);
-                    continue;
-                }
-
-                // Ignore WinForms design time and hierarchy information.
-                // Skip resources starting with $ or >>, like "$this.Text",
-                // ">>$this.Name" or ">>treeView1.Parent".
-                if ((key.Length > 0 && key[0] == '$') ||
-                    (key.Length > 1 && key[0] == '>' && key[1] == '>'))
-                {
-                    continue;
-                }
-
-
-                if (!codeProvider.IsValidIdentifier(key))
-                {
-                    String newKey = VerifyResourceName(key, codeProvider, false);
-                    if (newKey == null)
+                    if (!codeProvider.IsValidIdentifier(str1))
                     {
-                        errors.Add(key);
-                        continue;
-                    }
-
-                    // Now see if we've already mapped another key to the 
-                    // same name.
-                    if (reverseFixupTable.TryGetValue(newKey, out string oldDuplicateKey))
-                    {
-                        // We can't handle this key nor the previous one.
-                        // Remove the old one.
-                        if (!errors.Contains(oldDuplicateKey))
+                        string key = StronglyTypedResourceBuilder.VerifyResourceName(str1, codeProvider, false);
+                        if (key == null)
                         {
-                            errors.Add(oldDuplicateKey);
+                            errors.Add((object) str1);
+                            continue;
                         }
-                        cleanedResourceList.Remove(newKey);
-                        errors.Add(key);
-                        continue;
-                    }
-                    reverseFixupTable[newKey] = key;
-                    key = newKey;
-                }
-                ResourceData value = entry.Value;
-                if (!cleanedResourceList.ContainsKey(key))
-                {
-                    cleanedResourceList.Add(key, value);
-                }
-                else
-                {
-                    // There was a case-insensitive conflict between two keys.
-                    // Or possibly one key was fixed up in a way that conflicts 
-                    // with another key (ie, "A B" and "A_B").
-                    if (reverseFixupTable.TryGetValue(key, out string fixedUp))
-                    {
-                        if (!errors.Contains(fixedUp))
+                        string str2 = (string) reverseFixupTable[(object) key];
+                        if (str2 != null)
                         {
-                            errors.Add(fixedUp);
+                            if (!errors.Contains((object) str2))
+                                errors.Add((object) str2);
+                            if (sortedList.Contains((object) key))
+                                sortedList.Remove((object) key);
+                            errors.Add((object) str1);
+                            continue;
                         }
-                        reverseFixupTable.Remove(key);
+                        reverseFixupTable[(object) key] = (object) str1;
+                        str1 = key;
                     }
-                    errors.Add(entry.Key);
-                    cleanedResourceList.Remove(key);
+                    StronglyTypedResourceBuilder.ResourceData resourceData = resource.Value;
+                    if (!sortedList.Contains((object) str1))
+                    {
+                        sortedList.Add((object) str1, (object) resourceData);
+                    }
+                    else
+                    {
+                        string str3 = (string) reverseFixupTable[(object) str1];
+                        if (str3 != null)
+                        {
+                            if (!errors.Contains((object) str3))
+                                errors.Add((object) str3);
+                            reverseFixupTable.Remove((object) str1);
+                        }
+                        errors.Add((object) resource.Key);
+                        sortedList.Remove((object) str1);
+                    }
                 }
             }
-            return cleanedResourceList;
+            return sortedList;
+        }
+
+        internal sealed class ResourceData
+        {
+            private Type _type;
+            private string _valueAsString;
+
+            internal ResourceData(Type type, string valueAsString)
+            {
+                this._type = type;
+                this._valueAsString = valueAsString;
+            }
+
+            internal Type Type => this._type;
+
+            internal string ValueAsString => this._valueAsString;
         }
     }
 }

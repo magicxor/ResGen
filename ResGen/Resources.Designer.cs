@@ -381,6 +381,15 @@ namespace ResGen {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Couldn&apos;t process file {0} due to being in the Internet or Restricted zone or having the mark of the web on the file, use /allowUntrustedFiles if you want to process these files..
+        /// </summary>
+        internal static string MOTW {
+            get {
+                return ResourceManager.GetString("MOTW", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to You specified multiple response files; at most one is allowed..
         /// </summary>
         internal static string MultipleResponseFiles {
